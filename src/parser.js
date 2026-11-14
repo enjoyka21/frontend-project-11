@@ -20,6 +20,7 @@ const parseRss = (rss) => {
   const posts = [...channel.querySelectorAll('item')].map((item) => ({
     title: getText(item, 'title'),
     link: getText(item, 'link'),
+    description: getText(item, 'description'),
   }));
 
   return { feed, posts };

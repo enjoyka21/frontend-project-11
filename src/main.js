@@ -25,6 +25,9 @@ setLocale({
 const state = proxy({
   feeds: [],
   posts: [],
+  ui: {
+    modalPostId: null,
+  },
   form: {
     error: null,
     processState: 'filling',
@@ -67,6 +70,7 @@ const addNewPosts = (feedId, posts) => {
       ...post,
       id: window.crypto.randomUUID(),
       feedId,
+      seen: false,
     }));
 };
 
@@ -87,7 +91,26 @@ const updateFeeds = () => Promise.allSettled(state.feeds.map(updateFeedPosts));
 const runUpdates = () => updateFeeds()
   .finally(() => window.setTimeout(runUpdates, updateInterval));
 
-const { form, input } = initView(state, i18next);
+const previewPost = (postId) => {
+  const post = state.posts.find((item) => item.id === postId);
+
+  if (!post) {
+    return;
+  }
+
+  post.seen = true;
+  state.ui.modalPostId = postId;
+};
+
+const { form, input, postList } = initView(state, i18next);
+
+postList.addEventListener('click', (event) => {
+  const previewButton = event.target.closest('button[data-post-id]');
+
+  if (previewButton) {
+    previewPost(previewButton.dataset.postId);
+  }
+});
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -95,6 +118,7 @@ form.addEventListener('submit', async (event) => {
   const formData = new window.FormData(event.target);
   const url = formData.get('url');
   state.form.error = null;
+  state.form.processState = 'filling';
 
   try {
     const validUrl = await validateUrl(url, state.feeds);
@@ -103,7 +127,7 @@ form.addEventListener('submit', async (event) => {
     const rssData = parseRss(rss);
     saveFeed(validUrl, rssData);
     state.form.error = null;
-    state.form.processState = 'filling';
+    state.form.processState = 'success';
     event.target.reset();
     input.focus();
   } catch (error) {

@@ -15,6 +15,14 @@ export default {
       feeds: 'Фиды',
       posts: 'Посты',
     },
+    modal: {
+      preview: 'Просмотр',
+      close: 'Закрыть',
+      readMore: 'Читать полностью',
+    },
+    messages: {
+      success: 'RSS успешно загружен',
+    },
     errors: {
       required: 'Не должно быть пустым',
       url: 'Ссылка должна быть валидным URL',
