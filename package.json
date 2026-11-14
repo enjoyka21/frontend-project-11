@@ -16,6 +16,7 @@
   "dependencies": {
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/vite": "^4.3.5",
+    "axios": "^1.21.1",
     "i18next": "^27.1.1",
     "tailwindcss": "^4.3.5",
     "valtio": "^2.3.2",
