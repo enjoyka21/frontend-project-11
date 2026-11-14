@@ -1,31 +1,56 @@
+import { setLocale, string } from 'yup';
+import { proxy } from 'valtio/vanilla';
 import './style.css';
+import i18next, { initI18next } from './i18n.js';
+import initView from './view.js';
 
-document.querySelector('#app').innerHTML = `
-  <main class="min-h-screen bg-slate-50 px-4 py-12">
-    <div class="mx-auto max-w-2xl">
-      <h1 class="mb-3 text-3xl font-bold text-slate-900">
-        RSS Reader
-      </h1>
+await initI18next();
 
-      <p class="mb-8 text-slate-600">
-        Stay up to date with your favorite websites
-      </p>
+document.title = i18next.t('page.title');
+document
+  .querySelector('meta[name="description"]')
+  .setAttribute('content', i18next.t('page.description'));
 
-      <form class="flex flex-col gap-3 sm:flex-row">
-        <input
-          type="url"
-          name="url"
-          placeholder="Enter RSS feed URL"
-          class="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-        >
+setLocale({
+  mixed: {
+    required: 'errors.required',
+  },
+  string: {
+    url: 'errors.url',
+  },
+});
 
-        <button
-          type="submit"
-          class="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
-        >
-          Add
-        </button>
-      </form>
-    </div>
-  </main>
-`;
+const state = proxy({
+  feeds: [],
+  form: {
+    error: null,
+  },
+});
+
+const urlSchema = string()
+  .trim()
+  .required()
+  .url();
+
+const validateUrl = (url, feeds) => urlSchema
+  .notOneOf(feeds, 'errors.duplicate')
+  .validate(url);
+
+const { form, input } = initView(state, i18next);
+
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const formData = new window.FormData(event.target);
+  const url = formData.get('url');
+
+  try {
+    const validUrl = await validateUrl(url, state.feeds);
+    state.feeds.push(validUrl);
+    state.form.error = null;
+    event.target.reset();
+    input.focus();
+  } catch (error) {
+    state.form.error = error.message;
+  }
+});
