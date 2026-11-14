@@ -40,20 +40,52 @@ const validateUrl = (url, feeds) => urlSchema
   .notOneOf(feeds.map(({ url: feedUrl }) => feedUrl), 'errors.duplicate')
   .validate(url);
 
+const updateInterval = 5000;
+
 const getErrorCode = (error) => {
   const knownErrorCodes = ['errors.required', 'errors.url', 'errors.duplicate', 'errors.parsing'];
   return knownErrorCodes.includes(error.message) ? error.message : 'errors.network';
 };
 
+const addNewPosts = (feedId, posts) => {
+  const knownLinks = new Set(
+    state.posts
+      .filter((post) => post.feedId === feedId)
+      .map((post) => post.link),
+  );
+
+  posts
+    .filter((post) => {
+      if (knownLinks.has(post.link)) {
+        return false;
+      }
+
+      knownLinks.add(post.link);
+      return true;
+    })
+    .forEach((post) => state.posts.push({
+      ...post,
+      id: window.crypto.randomUUID(),
+      feedId,
+    }));
+};
+
 const saveFeed = (url, { feed, posts }) => {
   const feedId = window.crypto.randomUUID();
   state.feeds.push({ ...feed, id: feedId, url });
-  posts.forEach((post) => state.posts.push({
-    ...post,
-    id: window.crypto.randomUUID(),
-    feedId,
-  }));
+  addNewPosts(feedId, posts);
 };
+
+const updateFeedPosts = async (feed) => {
+  const rss = await getRss(feed.url);
+  const { posts } = parseRss(rss);
+  addNewPosts(feed.id, posts);
+};
+
+const updateFeeds = () => Promise.allSettled(state.feeds.map(updateFeedPosts));
+
+const runUpdates = () => updateFeeds()
+  .finally(() => window.setTimeout(runUpdates, updateInterval));
 
 const { form, input } = initView(state, i18next);
 
@@ -79,3 +111,5 @@ form.addEventListener('submit', async (event) => {
     state.form.processState = 'failed';
   }
 });
+
+window.setTimeout(runUpdates, updateInterval);
