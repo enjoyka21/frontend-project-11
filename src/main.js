@@ -44,6 +44,16 @@ const validateUrl = (url, feeds) => urlSchema
   .validate(url);
 
 const updateInterval = 5000;
+let nextId = 0;
+
+const generateId = () => {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  nextId += 1;
+  return String(nextId);
+};
 
 const getErrorCode = (error) => {
   const knownErrorCodes = ['errors.required', 'errors.url', 'errors.duplicate', 'errors.parsing'];
@@ -68,14 +78,14 @@ const addNewPosts = (feedId, posts) => {
     })
     .forEach((post) => state.posts.push({
       ...post,
-      id: window.crypto.randomUUID(),
+      id: generateId(),
       feedId,
       seen: false,
     }));
 };
 
 const saveFeed = (url, { feed, posts }) => {
-  const feedId = window.crypto.randomUUID();
+  const feedId = generateId();
   state.feeds.push({ ...feed, id: feedId, url });
   addNewPosts(feedId, posts);
 };
